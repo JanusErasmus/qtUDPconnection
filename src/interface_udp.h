@@ -3,27 +3,34 @@
 
 #include <QObject>
 #include <QUdpSocket>
+#include <QMutex>
+#include <QWaitCondition>
 
-class UDPconnect : public QObject
+#include "duplexinterface.h"
+
+class UDPconnect : public QObject, public duplexInterface
 {
     Q_OBJECT
 
     QUdpSocket *mSocket;
     bool mConnected;
 
+    QMutex mMutex;
+    QWaitCondition mWait;
+    uint8_t mRXbuffer[256];
+    int mRXlen;
+
 public:
     explicit UDPconnect(QString server, quint16 port = 7777);
     virtual ~UDPconnect();
 
-    int transmit(char * string);
+    int transmit(uint8_t * buff, int len);
+    int receive(uint8_t * buff, int buff_len, int timeout = 5000);
 
 signals:
 
 public slots:
-    void hostfount();
-    void connected();
     void readyRead();
-    void error(QAbstractSocket::SocketError);
 
 };
 

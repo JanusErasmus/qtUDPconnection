@@ -1,7 +1,8 @@
 #include <QCoreApplication>
 #include <QDebug>
 
-#include "udpconnect.h"
+#include "interface_udp.h"
+#include "sess_get_info.h"
 
 int main(int argc, char *argv[])
 {
@@ -27,18 +28,13 @@ int main(int argc, char *argv[])
     try
     {
         c = new UDPconnect(server, port);
-        if(c->transmit("Hallo") > 0)
-        {
-            qDebug() << "Sent string";
-        }
     }
     catch(UDPconnectConnectException &e)
     {
         qDebug() << "UDPconnectConnectException";
     }
 
-//    if(c)
-//        delete c;
+    cSessGetInfo * s = new cSessGetInfo(c);
 
     return a.exec();
 }

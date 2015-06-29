@@ -1,16 +1,14 @@
 #include <QDebug>
 #include <QHostInfo>
 
-#include "udpconnect.h"
+#include "interface_udp.h"
 
 UDPconnect::UDPconnect(QString server, quint16 port) :
     QObject(0)
 {    
+    mRXlen = 0;
     mConnected = false;
     mSocket = new QUdpSocket();
-    connect(mSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(error(QAbstractSocket::SocketError)));
-    connect(mSocket, SIGNAL(hostFound()), SLOT(hostfount()));
-    connect(mSocket, SIGNAL(connected()), SLOT(connected()));
     connect(mSocket, SIGNAL(readyRead()), this, SLOT(readyRead()));
 
     mSocket->connectToHost(server, port);
@@ -29,40 +27,44 @@ UDPconnect::UDPconnect(QString server, quint16 port) :
     qDebug() << "Connected to host state: " << mSocket->state();
 }
 
-int UDPconnect::transmit(char * string)
+int UDPconnect::transmit(uint8_t * buff, int len)
 {
     if(!mConnected)
         return -1;
 
-    QByteArray Data;
-    Data.append(string);
-    return mSocket->write(Data);
+    return mSocket->write((const char*)buff, len );
 }
 
-void UDPconnect::error(QAbstractSocket::SocketError e)
-{
-    qDebug() << "UDPconnect ERROR " << e;
-}
 
-void UDPconnect::hostfount()
+int UDPconnect::receive(uint8_t * buff, int buff_len, int timeout)
 {
-qDebug() << "Host found";
-}
+    if(!mConnected)
+        return -1;
 
-void UDPconnect::connected()
-{
-    qDebug() << "Connected to host";
+    int rxLen = -1;
+    mMutex.lock();
+    if(mWait.wait(&mMutex, timeout))
+    {
+        if(mRXlen > buff_len)
+            mRXlen = buff_len;
+
+        memcpy(buff, mRXbuffer, mRXlen);
+        rxLen = mRXlen;
+    }
+
+    mMutex.unlock();
+
+    return rxLen;
 }
 
 void UDPconnect::readyRead()
 {
-    // when data comes in
-    QByteArray buffer;
-    buffer.resize(mSocket->pendingDatagramSize());
-
-    mSocket->read(buffer.data(), buffer.size());
-
-    qDebug() << "Message: " << buffer;
+    mMutex.lock();
+    mRXlen = mSocket->pendingDatagramSize();
+    //qDebug() << " RX data" << mRXlen;
+    mSocket->read((char*)mRXbuffer, mRXlen);
+    mWait.wakeAll();
+    mMutex.unlock();
 }
 
 UDPconnect::~UDPconnect()

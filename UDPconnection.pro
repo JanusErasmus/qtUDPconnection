@@ -3,7 +3,6 @@
 # Project created by QtCreator 2015-01-17T10:00:32
 #
 #-------------------------------------------------
-
 QT       += core
 QT       += network
 QT       -= gui
@@ -15,8 +14,23 @@ CONFIG   -= app_bundle
 TEMPLATE = app
 
 
-SOURCES += main.cpp \
-    udpconnect.cpp
+SOURCES += src/main.cpp \
+    src/sess_get_info.cpp \
+    src/interface_udp.cpp \
+    src/glamdict.cpp
 
 HEADERS += \
-    udpconnect.h
+    src/sess_get_info.h \
+    src/duplexinterface.h \
+    src/interface_udp.h \
+    src/glamdict.h
+
+win32 {
+INCLUDEPATH += $$PWD/../libKmsg/include
+LIBS += -L$$PWD/../libKmsg/lib -lkmsg -lwsock32
+}
+
+unix {
+INCLUDEPATH += $$PWD/../libKMsg/include
+LIBS += -lkmsg
+}
